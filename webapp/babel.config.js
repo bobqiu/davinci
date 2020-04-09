@@ -10,11 +10,23 @@ module.exports = {
     '@babel/preset-typescript'
   ],
   plugins: [
+    'react-hot-loader/babel',
     '@babel/plugin-proposal-class-properties',
     '@babel/plugin-syntax-dynamic-import',
     ["import", {
       "libraryName": "antd",
+      "libraryDirectory": "es",
       "style": true
+    }],
+    ["transform-imports", {
+      "react-router": {
+        "transform": "react-router/${member}",
+        "preventFullImport": true
+      },
+      "lodash": {
+        "transform": "lodash/${member}",
+        "preventFullImport": true
+      }
     }]
   ],
   env: {

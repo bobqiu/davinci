@@ -20,6 +20,10 @@
 
 import { DownloadStatus } from './types'
 
+export const GET_EXTERNAL_AUTH_PROVIDERS = 'davinci/App/GET_EXTERNAL_AUTH_PROVIDERS'
+export const GET_EXTERNAL_AUTH_PROVIDERS_SUCESS = 'davinci/App/GET_EXTERNAL_AUTH_PROVIDERS_SUCESS'
+export const TRY_EXTERNAL_AUTH = 'davinci/App/TRY_EXTERNAL_AUTH'
+export const EXTERNAL_AUTH_LOGOUT = 'davinci/App/EXTERNAL_AUTH_LOGOUT'
 export const LOGIN = 'davinci/App/LOGIN'
 export const LOGGED = 'davinci/App/LOGGED'
 export const LOGIN_ERROR = 'davinci/App/LOGIN_ERROR'
@@ -32,7 +36,6 @@ export const JOIN_ORGANIZATION_SUCCESS = 'davinci/App/JOIN_ORGANIZATION_SUCCESS'
 export const JOIN_ORGANIZATION_ERROR = 'davinci/App/JOIN_ORGANIZATION_ERROR'
 
 export const LOGOUT = 'davinci/App/LOGOUT'
-export const SET_LOGIN_USER = 'davinci/App/SET_LOGIN_USER'
 export const GET_LOGIN_USER = 'davinci/App/GET_LOGIN_USER'
 export const GET_LOGIN_USER_ERROR = 'davinci/App/GET_LOGIN_USER_ERROR'
 export const SHOW_NAVIGATOR = 'davinci/App/SHOW_NAVIGATOR'
@@ -55,9 +58,6 @@ export const LOAD_DOWNLOAD_LIST_FAILURE = 'davinci/Download/LOAD_DOWNLOAD_LIST_F
 export const DOWNLOAD_FILE = 'davinci/Download/DOWNLOAD_FILE'
 export const DOWNLOAD_FILE_SUCCESS = 'davinci/Download/DOWNLOAD_FILE_SUCCESS'
 export const DOWNLOAD_FILE_FAILURE = 'davinci/Download/DOWNLOAD_FILE_FAILURE'
-export const CHANGE_DOWNLOAD_STATUS = 'davinci/Download/CHANGE_DOWNLOAD_STATUS'
-export const CHANGE_DOWNLOAD_STATUS_SUCCESS = 'davinci/Download/CHANGE_DOWNLOAD_STATUS_SUCCESS'
-export const CHANGE_DOWNLOAD_STATUS_FAILURE = 'davinci/Download/CHANGE_DOWNLOAD_STATUS_FAILURE'
 export const INITIATE_DOWNLOAD_TASK = 'davinci/Download/INITIATE_DOWNLOAD_TASK'
 export const INITIATE_DOWNLOAD_TASK_SUCCESS = 'davinci/Download/INITIATE_DOWNLOAD_TASK_SUCCESS'
 export const INITIATE_DOWNLOAD_TASK_FAILURE = 'davinci/Download/INITIATE_DOWNLOAD_TASK_FAILURE'

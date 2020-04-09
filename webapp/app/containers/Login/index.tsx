@@ -22,31 +22,30 @@ import * as React from 'react'
 import Helmet from 'react-helmet'
 import { connect } from 'react-redux'
 import { createStructuredSelector } from 'reselect'
+import { RouteComponentProps } from 'react-router-dom'
 
 import LoginForm from './LoginForm'
 import { Icon } from 'antd'
 
 import { compose } from 'redux'
-import injectReducer from '../../utils/injectReducer'
-import injectSaga from '../../utils/injectSaga'
+import injectReducer from 'utils/injectReducer'
+import injectSaga from 'utils/injectSaga'
 // import reducer from '../App/reducer'
 // import saga from '../App/sagas'
 
-import { login, logged, setLoginUser } from '../App/actions'
+import { login, logged } from '../App/actions'
 import { makeSelectLoginLoading } from '../App/selectors'
-import { promiseDispatcher } from '../../utils/reduxPromisation'
-import checkLogin from '../../utils/checkLogin'
-import { setToken } from '../../utils/request'
-import { statistic } from '../../utils/statistic/statistic.dv'
+import checkLogin from 'utils/checkLogin'
+import { setToken } from 'utils/request'
+import { statistic } from 'utils/statistic/statistic.dv'
+import ExternalLogin from '../ExternalLogin'
 
 const styles = require('./Login.less')
 
 interface ILoginProps {
-  router: any
   loginLoading: boolean
   onLogin: (username: string, password: string, resolve: () => any) => any
-  onLogged: () => any
-  onSetLoginUser: (user: object) => any
+  onLogged: (user) => void
 }
 
 interface ILoginStates {
@@ -54,7 +53,7 @@ interface ILoginStates {
   password: string
 }
 
-export class Login extends React.PureComponent<ILoginProps, ILoginStates> {
+export class Login extends React.PureComponent<ILoginProps & RouteComponentProps, ILoginStates> {
   constructor (props) {
     super(props)
     this.state = {
@@ -71,11 +70,9 @@ export class Login extends React.PureComponent<ILoginProps, ILoginStates> {
     if (checkLogin()) {
       const token = localStorage.getItem('TOKEN')
       const loginUser = localStorage.getItem('loginUser')
-
       setToken(token)
-      this.props.onLogged()
-      this.props.onSetLoginUser(JSON.parse(loginUser))
-      this.props.router.replace('/')
+      this.props.onLogged(JSON.parse(loginUser))
+      this.props.history.replace('/')
     }
   }
 
@@ -92,18 +89,27 @@ export class Login extends React.PureComponent<ILoginProps, ILoginStates> {
   }
 
   private toSignUp = () => {
-    const { router } = this.props
-    router.replace('/register')
+    const { history } = this.props
+    history.replace('/register')
   }
 
   private doLogin = () => {
-    const { onLogin, router } = this.props
+    const { onLogin, history } = this.props
     const { username, password } = this.state
 
     if (username && password) {
       onLogin(username, password, () => {
-        router.replace('/')
-        statistic.onceSendTerminal()
+        history.replace('/')
+        statistic.whenSendTerminal()
+        statistic.setOperations({
+            create_time:  statistic.getCurrentDateTime()
+          }, (data) => {
+            const loginRecord = {
+              ...data,
+              action: 'login'
+            }
+            statistic.sendOperation(loginRecord)
+        })
       })
     }
   }
@@ -136,6 +142,7 @@ export class Login extends React.PureComponent<ILoginProps, ILoginStates> {
           <span>还没有账号？ </span>
           <a href="javascript:;" onClick={this.toSignUp}>注册davinci账号</a>
         </p>
+        <ExternalLogin />
       </div>
     )
   }
@@ -148,8 +155,7 @@ const mapStateToProps = createStructuredSelector({
 export function mapDispatchToProps (dispatch) {
   return {
     onLogin: (username, password, resolve) => dispatch(login(username, password, resolve)),
-    onLogged: () => promiseDispatcher(dispatch, logged),
-    onSetLoginUser: (user) => promiseDispatcher(dispatch, setLoginUser, user)
+    onLogged: (user) => dispatch(logged(user))
   }
 }
 

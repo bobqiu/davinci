@@ -26,7 +26,7 @@ import {
   IViewBase, IView, IExecuteSqlParams, IExecuteSqlResponse, IViewInfo,
   IDacChannel, IDacTenant, IDacBiz
 } from './types'
-import { IDataRequestParams } from 'containers/Dashboard/Grid'
+import { IDataRequestParams } from 'containers/Dashboard/types'
 import { RenderType } from 'containers/Widget/components/Widget'
 import { IDistinctValueReqeustParams } from 'app/components/Filters/types'
 const CancelToken = axios.CancelToken
@@ -150,6 +150,31 @@ export const ViewActions = {
   deleteViewFail () {
     return {
       type: ActionTypes.DELETE_VIEW_FAILURE,
+      payload: {}
+    }
+  },
+
+  copyView (view: IViewBase, resolve: () => void) {
+    return {
+      type: ActionTypes.COPY_VIEW,
+      payload: {
+        view,
+        resolve
+      }
+    }
+  },
+  viewCopied (fromViewId: number, result: IView) {
+    return {
+      type: ActionTypes.COPY_VIEW_SUCCESS,
+      payload: {
+        fromViewId,
+        result
+      }
+    }
+  },
+  copyViewFail () {
+    return {
+      type: ActionTypes.COPY_VIEW_FAILURE,
       payload: {}
     }
   },
@@ -313,13 +338,19 @@ export const ViewActions = {
     }
   },
 
-  loadViewData (id: number, requestParams: IDataRequestParams, resolve: (data: any[]) => void) {
+  loadViewData (
+    id: number,
+    requestParams: IDataRequestParams,
+    resolve: (data: any[]) => void,
+    reject: (error) => void
+  ) {
     return {
       type: ActionTypes.LOAD_VIEW_DATA,
       payload: {
         id,
         requestParams,
-        resolve
+        resolve,
+        reject
       }
     }
   },
@@ -366,10 +397,11 @@ export const ViewActions = {
 
   loadViewDataFromVizItem (
     renderType: RenderType,
-    itemId: number,
+    itemId: number | [number, number],
     viewId: number,
     requestParams: IDataRequestParams,
-    vizType: 'dashboard' | 'display'
+    vizType: 'dashboard' | 'display',
+    statistic
   ) {
     return {
       type: ActionTypes.LOAD_VIEW_DATA_FROM_VIZ_ITEM,
@@ -380,15 +412,17 @@ export const ViewActions = {
         requestParams,
         vizType,
         cancelTokenSource: CancelToken.source()
-      }
+      },
+      statistic
     }
   },
   viewDataFromVizItemLoaded (
     renderType: RenderType,
-    itemId: number,
+    itemId: number | [number, number],
     requestParams: IDataRequestParams,
     result: any[],
-    vizType: 'dashboard' | 'display'
+    vizType: 'dashboard' | 'display',
+    statistic
   ) {
     return {
       type: ActionTypes.LOAD_VIEW_DATA_FROM_VIZ_ITEM_SUCCESS,
@@ -398,15 +432,17 @@ export const ViewActions = {
         requestParams,
         result,
         vizType
-      }
+      },
+      statistic
     }
   },
-  loadViewDataFromVizItemFail (itemId: number, vizType: 'dashboard' | 'display') {
+  loadViewDataFromVizItemFail (itemId: number | [number, number], vizType: 'dashboard' | 'display', errorMessage: string) {
     return {
       type: ActionTypes.LOAD_VIEW_DATA_FROM_VIZ_ITEM_FAILURE,
       payload: {
         itemId,
-        vizType
+        vizType,
+        errorMessage
       }
     }
   }

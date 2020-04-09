@@ -6,7 +6,7 @@ import {
   renderDate,
   renderDateRange
 } from './'
-import { IControlBase, ControlOptions } from './types'
+import { IControlBase, ControlOptions, IGridCtrlParams } from './types'
 import {
   deserializeDefaultValue
 } from './util'
@@ -27,18 +27,18 @@ interface IFilterControlProps {
   control: IControlBase
   currentOptions: ControlOptions
   parentsInfo?: IParentInfo[]
-  onChange: (control: IControlBase, value, isInputChange?: boolean) => void
+  onChange: (control: IControlBase, value) => void
+  gridCtrlParams: IGridCtrlParams
 }
 
 export class FilterControl extends PureComponent<IFilterControlProps, {}> {
-
   private renderControl = (filter) => {
     const { currentOptions } = this.props
     const options = currentOptions || []
     let component
     switch (filter.type) {
       case FilterTypes.InputText:
-        component = renderInputText(this.inputChange, this.inputSearch)
+        component = renderInputText(this.change)
         break
       case FilterTypes.NumberRange:
         component = renderNumberRange(this.change)
@@ -59,12 +59,22 @@ export class FilterControl extends PureComponent<IFilterControlProps, {}> {
     return this.wrapFormItem(filter, component)
   }
 
+  public componentWillReceiveProps(nextProps) {
+    const { gridCtrlParams } = this.props
+    if (gridCtrlParams !== nextProps.gridCtrlParams) {
+      const { globalCtrlParams } = nextProps.gridCtrlParams
+      this.props.form.setFieldsValue(globalCtrlParams)
+    }
+  }
+
   private wrapFormItem = (control: IControlBase, component: Component): ReactNode => {
+    const { gridCtrlParams } = this.props
+    const initialValueFromGridControlCache = gridCtrlParams && gridCtrlParams.globalCtrlParams && gridCtrlParams.globalCtrlParams[`${control.key}`]
     const { getFieldDecorator } = this.props.form
     return (
       <FormItem label={control.name} className={styles.controlItem}>
         {getFieldDecorator(`${control.key}`, {
-          initialValue: deserializeDefaultValue(control)
+          initialValue: initialValueFromGridControlCache || deserializeDefaultValue(control)
         })(component)}
       </FormItem>
     )
@@ -72,20 +82,6 @@ export class FilterControl extends PureComponent<IFilterControlProps, {}> {
 
   private change = (val) => {
     const { control, onChange } = this.props
-    onChange(control, val)
-  }
-
-  private inputChange = (e) => {
-    const { control, onChange } = this.props
-    let val = e.target.value
-    if (val === '') { val = undefined }
-    onChange(control, val, true)
-  }
-
-  private inputSearch = (e) => {
-    const { control, onChange } = this.props
-    let val = e.target.value
-    if (val === '') { val = undefined }
     onChange(control, val)
   }
 

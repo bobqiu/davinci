@@ -31,6 +31,10 @@ public class Consts {
 
     public static final String SLASH = "/";
 
+    public static final String BACK_SLASH = "\\";
+
+    public static final String DOUBLE_SLASH = "//";
+
     public static final String SPACE = " ";
 
     public static final String EMPTY = "";
@@ -80,6 +84,8 @@ public class Consts {
 
     public static final String DOUBLE_QUOTES = "\"";
 
+    public static final String DOT = ".";
+
 
     /**
      * 当前用户
@@ -127,6 +133,8 @@ public class Consts {
 
     public static final String SCHEDULE_JOB_DATA_KEY = "scheduleJobs";
 
+    public static final String DEFAULT_COPY_SUFFIX = "_COPY";
+
     /**
      * 常用图片格式
      */
@@ -146,6 +154,9 @@ public class Consts {
     public static final String REG_SENSITIVE_SQL = "drop\\s|alter\\s|grant\\s|insert\\s|replace\\s|delete\\s|truncate\\s|update\\s|remove\\s";
     public static final Pattern PATTERN_SENSITIVE_SQL = Pattern.compile(REG_SENSITIVE_SQL);
 
+    private static final String REG_WITH_SQL_FRAGMENT = "((?i)WITH[\\s\\S]+(?i)AS?\\s*\\([\\s\\S]+\\))\\s*(?i)SELECT";
+    public static final Pattern WITH_SQL_FRAGMENT = Pattern.compile(REG_WITH_SQL_FRAGMENT);
+
     /**
      * 匹配多行sql注解正则
      */
@@ -162,8 +173,9 @@ public class Consts {
 
     public static final Pattern PATTERN_JDBC_TYPE = Pattern.compile("jdbc:\\w+");
 
-
     public static final String DIR_DOWNLOAD = File.separator + "download" + File.separator;
+
+    public static final String DIR_SHARE_DOWNLOAD = File.separator + "share" + File.separator + "download" + File.separator;
 
     public static final String DIR_EMAIL = File.separator + "email" + File.separator;
 
@@ -180,4 +192,12 @@ public class Consts {
     public static final String QUERY_COUNT_SQL = "SELECT COUNT(*) FROM (%s) CT";
 
     public static final String QUERY_META_SQL = "SELECT * FROM (%s) MT WHERE 1=0";
+
+    public static final String JDBC_PREFIX_FORMATER = "jdbc:%s:";
+
+    public static final String ORACLE_JDBC_PREFIX = "jdbc:oracle:thin:";
+
+    public static final String JDBC_DATASOURCE_DEFAULT_VERSION = "Default";
+
+    public static final String PATH_EXT_FORMATER = "lib" + File.separator  + "ext" + File.separator + "%s" + File.separator + "%s" + File.separator;
 }

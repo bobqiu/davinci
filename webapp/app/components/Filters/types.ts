@@ -1,7 +1,7 @@
 import { FilterTypes } from './filterTypes'
 import { OperatorTypes } from 'utils/operatorTypes'
-import { QueryVariable } from '../../containers/Dashboard/Grid'
-import { SqlTypes } from '../../globalConstants'
+import { QueryVariable } from 'containers/Dashboard/types'
+import { SqlTypes } from 'app/globalConstants'
 import { ViewVariableValueTypes } from 'app/containers/View/constants'
 import DatePickerFormats from './datePickerFormats'
 
@@ -17,6 +17,13 @@ export interface IControlRelatedField {
   type: SqlTypes | ViewVariableValueTypes
   optionsFromColumn?: boolean
   column?: string
+}
+
+export interface IGridCtrlParams {
+  currentDashboardId: number
+  globalCtrlParams: {
+    [key: string]: string | number
+  }
 }
 
 export interface IControlSelectOption {
@@ -103,6 +110,15 @@ export type ControlOptions = Array<{
 
 export interface IMapControlOptions {
   [controlKey: string]: ControlOptions
+}
+
+export interface IFilters {
+  name: string
+  type: string
+  value: any
+  operator: string
+  sqlType: string
+  children?: IFilters
 }
 
 export enum GlobalControlQueryMode {

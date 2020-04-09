@@ -21,13 +21,12 @@ package edp.davinci.schedule;
 
 import edp.core.consts.Consts;
 import edp.core.exception.ServerException;
-import edp.core.utils.CollectionUtils;
-import edp.core.utils.DateUtils;
-import edp.core.utils.FileUtils;
-import edp.core.utils.QuartzUtils;
+import edp.core.utils.*;
 import edp.davinci.core.enums.FileTypeEnum;
 import edp.davinci.dao.CronJobMapper;
+import edp.davinci.dao.ShareDownloadRecordMapper;
 import edp.davinci.model.CronJob;
+import edp.davinci.model.ShareDownloadRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +34,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Component
@@ -47,8 +48,15 @@ public class SystemSchedule {
     private CronJobMapper cronJobMapper;
 
     @Autowired
-    private QuartzUtils quartzUtils;
+    private QuartzHandler quartzHandler;
 
+    @Autowired
+    private RedisUtils redisUtils;
+
+    @Autowired
+    private ShareDownloadRecordMapper shareDownloadRecordMapper;
+
+    private static final ExecutorService CLEAR_TEMPDIR_THREADPOOL = Executors.newFixedThreadPool(3);
 
     @Scheduled(cron = "0 0 1 * * *")
     public void clearTempDir() {
@@ -62,21 +70,69 @@ public class SystemSchedule {
         final String temp = fileUtils.formatFilePath(tempDir);
         final String csv = fileUtils.formatFilePath(csvDir);
 
-        new Thread(() -> FileUtils.deleteDir(new File(download))).start();
-        new Thread(() -> FileUtils.deleteDir(new File(temp))).start();
-        new Thread(() -> FileUtils.deleteDir(new File(csv))).start();
+        CLEAR_TEMPDIR_THREADPOOL.execute(() -> FileUtils.deleteDir(new File(download)));
+        CLEAR_TEMPDIR_THREADPOOL.execute(() -> FileUtils.deleteDir(new File(temp)));
+        CLEAR_TEMPDIR_THREADPOOL.execute(() -> FileUtils.deleteDir(new File(csv)));
     }
 
     @Scheduled(cron = "0 0/2 * * * *")
     public void stopCronJob() {
+
+//        if (redisUtils.isRedisEnable()) {
+//            return;
+//        }
+//
         List<CronJob> jobs = cronJobMapper.getStopedJob();
         if (!CollectionUtils.isEmpty(jobs)) {
             for (CronJob job : jobs) {
                 try {
-                    quartzUtils.removeJob(job);
+                    quartzHandler.removeJob(job);
                 } catch (ServerException e) {
                 }
             }
         }
     }
+
+    @Scheduled(cron = "0 0 1 * * *")
+    public void clearShareDownloadRecord() {
+
+        List<ShareDownloadRecord> records = shareDownloadRecordMapper.getShareDownloadRecords();    //deleting
+        for(ShareDownloadRecord record : records){
+            deleteFile(new File(record.getPath()));
+        }
+
+        shareDownloadRecordMapper.deleteByCondition();
+    }
+
+    private void deleteFile(File file){
+        if(file == null || !file.exists()){
+            return;
+        }
+
+        if(file.isDirectory()){
+            String fileName = file.getName();
+            if("download".equals(fileName)){
+                return;
+            }
+
+            File[] childs = file.listFiles();
+            if(childs.length == 0){
+                file.delete();
+                deleteFile(file.getParentFile());
+            }else{
+                return;
+            }
+
+        }else{
+            File parentDir = file.getParentFile();
+            File[] childs = parentDir.listFiles();
+            if(childs.length == 1){
+                file.delete();
+                deleteFile(parentDir);
+            }else{
+                file.delete();
+            }
+        }
+    }
+
 }

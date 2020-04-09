@@ -25,13 +25,14 @@ import {
   IControlBase,
   IControlRelatedField,
   IRenderTreeItem,
-  InteractionType
+  InteractionType,
+  IFilters
 } from './types'
 import { uuid } from 'app/utils/util'
-import FilterTypes, { FilterTypesOperatorSetting, IS_RANGE_TYPE } from './filterTypes'
-import { DEFAULT_CACHE_EXPIRED, SQL_NUMBER_TYPES } from 'app/globalConstants'
+import FilterTypes, { FilterTypesOperatorSetting, IS_RANGE_TYPE, FilterTypesDynamicDefaultValueSetting } from './filterTypes'
+import { DEFAULT_CACHE_EXPIRED, SQL_NUMBER_TYPES, SQL_DATE_TYPES } from 'app/globalConstants'
 import { IFormedView, IViewModelProps, IViewVariable } from 'app/containers/View/types'
-import { ViewVariableValueTypes, ViewVariableTypes } from 'app/containers/View/constants'
+import { ViewVariableValueTypes, ViewVariableTypes, ViewModelTypes } from 'app/containers/View/constants'
 import DatePickerFormats, { DatePickerDefaultValues, DatePickerFormatsSelectSetting } from './datePickerFormats'
 import OperatorTypes from 'app/utils/operatorTypes'
 
@@ -76,8 +77,8 @@ export function getVariableValue (filter: IControlBase, fields: IControlRelatedF
   let variable = []
 
   if (value === void 0
-    || value === null
-    || typeof value === 'string' && !value.trim()) {
+      || value === null
+      || typeof value === 'string' && !value.trim()) {
     return variable
   }
 
@@ -139,8 +140,9 @@ export function getVariableValue (filter: IControlBase, fields: IControlRelatedF
   return variable
 }
 
+// 全局过滤器 与 本地控制器 filter 操作
 export function getModelValue (control: IControlBase, field: IControlRelatedField, value) {
-  const { type, dateFormat, multiple, operator } = control
+  const { type, dateFormat, multiple, operator } = control  // select  ''  true in
   const { name, type: sqlType } = field
   const filters = []
 
@@ -150,25 +152,46 @@ export function getModelValue (control: IControlBase, field: IControlRelatedFiel
     return filters
   }
 
+  const commanFilterJson: IFilters = {
+    name,
+    type: 'filter',
+    value: getValidColumnValue(value, sqlType),
+    sqlType,
+    operator
+  }
   switch (type) {
     case FilterTypes.InputText:
-      filters.push(`${name} ${operator} ${getValidColumnValue(value, sqlType)}`)
+      filters.push(commanFilterJson)
       break
     case FilterTypes.Select:
       if (multiple) {
-        if (value.length && value.length > 0) {
-          filters.push(`${name} ${operator} (${value.map((val) => getValidColumnValue(val, sqlType)).join(',')})`)
+        if (Array.isArray(value) && value.length > 0) {
+          const filterJson = {
+            ...commanFilterJson,
+            value: value.map((val) => getValidColumnValue(val, sqlType))
+          }
+          filters.push(filterJson)
         }
       } else {
-        filters.push(`${name} ${operator} ${getValidColumnValue(value, sqlType)}`)
+          filters.push(commanFilterJson)
       }
       break
     case FilterTypes.NumberRange:
       if (value[0] !== '' && !isNaN(value[0])) {
-        filters.push(`${name} >= ${getValidColumnValue(value[0], sqlType)}`)
+        const filterJson = {
+          ...commanFilterJson,
+          operator: '>=',
+          value: getValidColumnValue(value[0], sqlType)
+        }
+        filters.push(filterJson)
       }
       if (value[1] !== '' && !isNaN(value[1])) {
-        filters.push(`${name} <= ${getValidColumnValue(value[1], sqlType)}`)
+        const filterJson = {
+          ...commanFilterJson,
+          operator: '<=',
+          value: getValidColumnValue(value[1], sqlType)
+        }
+        filters.push(filterJson)
       }
       break
     // case FilterTypes.TreeSelect:
@@ -178,21 +201,43 @@ export function getModelValue (control: IControlBase, field: IControlRelatedFiel
     //   break
     case FilterTypes.Date:
       if (multiple) {
-        filters.push(`${name} ${operator} (${value.split(',').map((val) => getValidColumnValue(val, sqlType)).join(',')})`)
+        const filterJson = {
+          ...commanFilterJson,
+          value: value.split(',').map((val) => getValidColumnValue(val, sqlType))
+        }
+        filters.push(filterJson)
       } else {
-        filters.push(`${name} ${operator} ${getValidColumnValue(moment(value).format(dateFormat), sqlType)}`)
+        const filterJson = {
+          ...commanFilterJson,
+          value: getValidColumnValue(moment(value).format(dateFormat), sqlType)
+        }
+        filters.push(filterJson)
       }
       break
     case FilterTypes.DateRange:
       if (value.length) {
-        filters.push(`${name} >= ${getValidColumnValue(moment(value[0]).format(dateFormat), sqlType)}`)
-        filters.push(`${name} <= ${getValidColumnValue(moment(value[1]).format(dateFormat), sqlType)}`)
+        const filterJson1 = {
+          ...commanFilterJson,
+          operator: '>=',
+          value: getValidColumnValue(moment(value[0]).format(dateFormat), sqlType)
+        }
+        const filterJson2 = {
+          ...commanFilterJson,
+          operator: '<=',
+          value: getValidColumnValue(moment(value[1]).format(dateFormat), sqlType)
+        }
+        filters.push(filterJson1)
+        filters.push(filterJson2)
       }
       break
     default:
       const inputValue = value.target.value.trim()
+      const filterJson = {
+        ...commanFilterJson,
+        value: getValidColumnValue(inputValue, sqlType)
+      }
       if (inputValue) {
-        filters.push(`${name} ${operator} ${getValidColumnValue(inputValue, sqlType)}`)
+        filters.push(filterJson)
       }
       break
   }
@@ -220,6 +265,8 @@ export function getValidVariableValue (value, valueType: ViewVariableValueTypes)
 export function deserializeDefaultValue (control: IControlBase) {
   const { type, dynamicDefaultValue, defaultValue, multiple } = control
   switch (type) {
+    case FilterTypes.DateRange:
+      return Array.isArray(defaultValue) ? defaultValue.map((val) => moment(val)) : defaultValue
     case FilterTypes.Date:
       if (dynamicDefaultValue) {
         switch (dynamicDefaultValue) {
@@ -238,19 +285,19 @@ export function deserializeDefaultValue (control: IControlBase) {
           case DatePickerDefaultValues.Day30:
             return moment().subtract(30, 'days')
           case DatePickerDefaultValues.LastMonth:
-            return moment().subtract(30, 'days').startOf('month')
+            return moment().subtract(1, 'months').startOf('month')
           case DatePickerDefaultValues.Quarter:
-            return moment().startOf('month')
+            return moment().startOf('quarter')
           case DatePickerDefaultValues.Day90:
             return moment().subtract(90, 'days')
           case DatePickerDefaultValues.LastQuarter:
-            return moment().subtract(90, 'days').startOf('quarter')
+            return moment().subtract(1, 'quarters').startOf('quarter')
           case DatePickerDefaultValues.Year:
             return moment().startOf('year')
           case DatePickerDefaultValues.Day365:
             return moment().subtract(365, 'days')
           case DatePickerDefaultValues.LastYear:
-            return moment().subtract(90, 'days').startOf('year')
+            return moment().subtract(1, 'years').startOf('year')
           default:
             return multiple ? defaultValue : defaultValue && moment(defaultValue)
         }
@@ -261,6 +308,7 @@ export function deserializeDefaultValue (control: IControlBase) {
       return defaultValue
   }
 }
+
 
 export function serializeDefaultValue (
   control: IControlBase,
@@ -292,6 +340,17 @@ export function getDatePickerFormatOptions (type: FilterTypes, multiple: boolean
       return multiple
         ? DatePickerFormatsSelectSetting['multiple']
         : DatePickerFormatsSelectSetting['normal']
+    default:
+      return []
+  }
+}
+
+export function getDynamicDefaultValueOptions (type: FilterTypes, multiple: boolean): DatePickerDefaultValues[] {
+  switch (type) {
+    case FilterTypes.Date:
+      return multiple
+        ? FilterTypesDynamicDefaultValueSetting[type]['multiple']
+        : FilterTypesDynamicDefaultValueSetting[type]['normal']
     default:
       return []
   }
@@ -372,7 +431,11 @@ export function getRelatedFieldsInfo (
   fields: IControlRelatedField | IControlRelatedField[]
 } {
   const model = Object.entries(view.model)
-    .filter(([k, v]: [string, IViewModelProps]) => v.modelType === 'category')
+    .filter(([k, v]: [string, IViewModelProps]) => {
+      return type === FilterTypes.NumberRange
+        ? v.modelType === ViewModelTypes.Value
+        : v.modelType === ViewModelTypes.Category
+    })
     .map(([k, v]: [string, IViewModelProps]) => ({
       name: k,
       ...v
